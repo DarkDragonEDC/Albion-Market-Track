@@ -488,14 +488,20 @@ def processar_pcap(pcap_path: str):
         proc = subprocess.run(args, cwd=WORK_DIR, capture_output=True, timeout=60,
                               creationflags=0x08000000)
         out  = proc.stdout.decode('utf-8', errors='replace')
+        err  = proc.stderr.decode('utf-8', errors='replace')
         resps  = out.count('Got response to AuctionGet')
         errors = out.count('location has not yet been set')
         m      = re.search(r'opChangeCluster.*?0:"(\d+)"', out)
         cidade = LOCATION_NAMES.get(m.group(1), f'Zona {m.group(1)}') if m else ''
-    except Exception:
+        if err:
+            _ws_log(f'DC stderr: {err[:300]}')
+        _ws_log(f'DC stdout snippet: {out[:300]}')
+    except Exception as ex:
+        _ws_log(f'DC exception: {ex}')
         resps, cidade, errors = 0, '', -1
 
-    ws_done.wait(timeout=5)   # aguarda o WebSocket fechar e drenar mensagens
+    ws_done.wait(timeout=5)
+    time.sleep(2)  # aguarda Node.js processar mensagens WebSocket pendentes
     _ws_log(f'processar_pcap: resps={resps} ordens_ws={len(orders)}')
 
     # Fallback: se WebSocket não entregou nada, busca do Node.js HTTP
