@@ -52,9 +52,9 @@ _fetch_queue: set  = set()       # IDs aguardando busca de nome
 _fetch_lock        = threading.Lock()
 _avg_cache:  dict = {}           # "itemId@ench|city|quality" → int (preço médio 24h)
 
-# Albion Online usa porta UDP 5056 (Photon SDK) em todos os servidores.
-# Filtrar por porta é mais robusto que por IP (IPs variam por região/servidor).
-FILTER_UDP = 'udp and (udp.SrcPort == 5056 or udp.DstPort == 5056)'
+# Captura todo UDP — o albiondata-client identifica pacotes Albion pelo protocolo.
+# Filtrar por IP/porta quebra em outros servidores/versões (Steam, Americas, etc).
+FILTER_UDP = 'udp'
 
 LOCATION_NAMES = {
     '4002': 'Fort Sterling', '4000': 'Fort Sterling',
