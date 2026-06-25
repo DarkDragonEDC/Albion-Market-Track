@@ -860,9 +860,10 @@ class App(tk.Tk):
             subprocess.run('taskkill /F /IM node.exe', shell=True,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             time.sleep(0.3)
+            _node_log = open(r'C:\temp\albion_node_debug.txt', 'w', encoding='utf-8')
             self._node_proc = subprocess.Popen(
                 'npm start', shell=True, cwd=SCANNER_DIR,
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                stdout=_node_log, stderr=_node_log,
                 creationflags=0x08000000)  # CREATE_NO_WINDOW
         except Exception as e:
             self._set_status(f'Erro ao iniciar servidor: {e}')
