@@ -403,7 +403,7 @@ def _coletar_via_ws(orders_out: list, done: threading.Event):
         done.set()
         return
     try:
-        key = base64.b64encode(b'albionscanner00000').decode()
+        key = base64.b64encode(os.urandom(16)).decode()
         handshake = (
             'GET /ws HTTP/1.1\r\n'
             'Host: 127.0.0.1:8099\r\n'
@@ -420,10 +420,12 @@ def _coletar_via_ws(orders_out: list, done: threading.Event):
             chunk = sock.recv(4096)
             if not chunk:
                 _ws_log('conexão fechou durante handshake')
+                done.set()
                 return
             resp += chunk
         if b'101' not in resp:
             _ws_log(f'handshake recusado: {resp[:200]}')
+            done.set()
             return
         _ws_log('handshake OK — aguardando frames')
         sock.settimeout(60)
