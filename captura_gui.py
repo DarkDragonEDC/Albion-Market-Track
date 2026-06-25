@@ -1095,15 +1095,17 @@ class App(tk.Tk):
             except Exception:
                 return key, None
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
-            for key, result in pool.map(fetch_one, to_fetch):
-                if result is not None:
-                    cache_key = f'{key[0]}|{key[1]}|{key[2]}'
-                    self._arb_history[cache_key] = result
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+                for key, result in pool.map(fetch_one, to_fetch):
+                    if result is not None:
+                        cache_key = f'{key[0]}|{key[1]}|{key[2]}'
+                        self._arb_history[cache_key] = result
 
-        save_history_cache(self._arb_history)
-        self._history_fetching = False
-        self.after(0, self._render_arb_table)
+            save_history_cache(self._arb_history)
+            self.after(0, self._render_arb_table)
+        finally:
+            self._history_fetching = False
 
     def _arb_double_click(self, event):
         item = self.arb_tree.identify_row(event.y)
@@ -1533,62 +1535,64 @@ class App(tk.Tk):
             threading.Thread(target=self._fetch_avgs_bg, daemon=True).start()
 
     def _fetch_avgs_bg(self):
-        items_snap = list(self._items)
-        if not items_snap:
-            return
+        try:
+            items_snap = list(self._items)
+            if not items_snap:
+                return
 
-        # Agrupa por cidade para minimizar chamadas à API
-        by_city: dict = {}
-        for it in items_snap:
-            city = it.get('location', '')
-            if not city or city == 'Black Market':
-                continue
-            cache_key = (f"{it['itemId']}@{it['enchantment']}"
-                         if it.get('enchantment') else it['itemId'],
-                         city, it.get('quality', 1))
-            if cache_key in _avg_cache:
-                continue
-            by_city.setdefault(city, []).append((it, cache_key))
+            by_city: dict = {}
+            for it in items_snap:
+                city = it.get('location', '')
+                if not city or city == 'Black Market':
+                    continue
+                cache_key = (f"{it['itemId']}@{it['enchantment']}"
+                             if it.get('enchantment') else it['itemId'],
+                             city, it.get('quality', 1))
+                if cache_key in _avg_cache:
+                    continue
+                by_city.setdefault(city, []).append((it, cache_key))
 
-        for city, entries in by_city.items():
-            BATCH = 15
-            for start in range(0, len(entries), BATCH):
-                batch = entries[start:start + BATCH]
-                item_ids = ','.join(ck[0] for _, ck in batch)
-                quals    = ','.join(str(ck[2]) for _, ck in batch)
-                url = (f'{ALBION_DATA_API}/{item_ids}'
-                       f'?locations={urllib.parse.quote(city)}'
-                       f'&qualities={quals}&time-scale=24')
-                try:
-                    req = urllib.request.Request(
-                        url, headers={'User-Agent': 'AlbionMarketScanner/1.0'})
-                    with urllib.request.urlopen(req, timeout=15) as r:
-                        data = json.loads(r.read())
-                    for entry in data:
-                        raw_id = entry.get('item_id', '')
-                        base_id = re.sub(r'@\d+', '', raw_id)
-                        ench_m = re.search(r'@(\d+)', raw_id)
-                        ench = int(ench_m.group(1)) if ench_m else 0
-                        api_id = f'{base_id}@{ench}' if ench else base_id
-                        ck = (api_id, entry.get('city', ''), entry.get('quality', 1))
-                        avgs = entry.get('data', {}).get('prices_avg', [])
-                        _avg_cache[ck] = int(avgs[-1]) if avgs and avgs[-1] else 0
-                except Exception as e:
-                    _ws_log(f'avg API error [{city}]: {e}')
+            for city, entries in by_city.items():
+                BATCH = 15
+                for start in range(0, len(entries), BATCH):
+                    batch = entries[start:start + BATCH]
+                    item_ids = ','.join(ck[0] for _, ck in batch)
+                    quals    = ','.join(str(ck[2]) for _, ck in batch)
+                    url = (f'{ALBION_DATA_API}/{item_ids}'
+                           f'?locations={urllib.parse.quote(city)}'
+                           f'&qualities={quals}&time-scale=24')
+                    try:
+                        req = urllib.request.Request(
+                            url, headers={'User-Agent': 'AlbionMarketScanner/1.0'})
+                        with urllib.request.urlopen(req, timeout=15) as r:
+                            data = json.loads(r.read())
+                        for entry in data:
+                            raw_id = entry.get('item_id', '')
+                            base_id = re.sub(r'@\d+', '', raw_id)
+                            ench_m = re.search(r'@(\d+)', raw_id)
+                            ench = int(ench_m.group(1)) if ench_m else 0
+                            api_id = f'{base_id}@{ench}' if ench else base_id
+                            ck = (api_id, entry.get('city', ''), entry.get('quality', 1))
+                            avgs = entry.get('data', {}).get('prices_avg', [])
+                            _avg_cache[ck] = int(avgs[-1]) if avgs and avgs[-1] else 0
+                        time.sleep(1.5)  # evita rate limit 429
+                    except Exception as e:
+                        _ws_log(f'avg API error [{city}]: {e}')
+                        time.sleep(3)    # backoff em caso de erro
 
-        # Aplica cache nos items e re-renderiza
-        changed = False
-        for it in self._items:
-            ench = it.get('enchantment', 0)
-            api_id = f"{it['itemId']}@{ench}" if ench else it['itemId']
-            ck = (api_id, it.get('location', ''), it.get('quality', 1))
-            if ck in _avg_cache and 'avgPrice24h' not in it:
-                it['avgPrice24h'] = _avg_cache[ck] or None
-                changed = True
+            changed = False
+            for it in self._items:
+                ench = it.get('enchantment', 0)
+                api_id = f"{it['itemId']}@{ench}" if ench else it['itemId']
+                ck = (api_id, it.get('location', ''), it.get('quality', 1))
+                if ck in _avg_cache and 'avgPrice24h' not in it:
+                    it['avgPrice24h'] = _avg_cache[ck] or None
+                    changed = True
 
-        self._avgs_fetching = False
-        if changed:
-            self.after(0, self._render_table)
+            if changed:
+                self.after(0, self._render_table)
+        finally:
+            self._avgs_fetching = False
 
     # ── Fechar ────────────────────────────────────────────────────────────────
     def _on_close(self):
