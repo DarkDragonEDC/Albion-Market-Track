@@ -531,6 +531,8 @@ class App(tk.Tk):
         self._arb_history    = load_history_cache()
         self._arb_overrides  = load_overrides()  # (itemId, ench, qual) → {'precoCidade': N, 'precoBM': N}
         self._arb_row_map    = {}   # iid → row dict
+        self._history_fetching = False
+        self._avgs_fetching    = False
         self._arb_fname      = tk.StringVar(value='')
         self._arb_min_pct    = tk.StringVar(value='')
         self._arb_tiers      = {i: tk.BooleanVar(value=True) for i in range(1, 9)}
@@ -870,14 +872,14 @@ class App(tk.Tk):
 
     # ── Refresh periódico ─────────────────────────────────────────────────────
     def _schedule_refresh(self):
-        self._render_table()
+        self._render_table(arb=False)
         self.after(REFRESH_MS, self._schedule_refresh)
 
     def _force_fetch(self):
-        self._render_table()
+        self._render_table(arb=False)
 
     # ── Tabela ────────────────────────────────────────────────────────────────
-    def _render_table(self):
+    def _render_table(self, arb=True):
         items = list(self._items)
 
         # filtro local de cidade
@@ -927,7 +929,8 @@ class App(tk.Tk):
         if n > 0:
             self._status_var.set(f'✓  {n} itens na tabela — atualizado {time.strftime("%H:%M:%S")}')
 
-        self._render_arb_table()
+        if arb:
+            self._render_arb_table()
 
     def _sort_by(self, col: str):
         if self._sort_col == col:
@@ -938,7 +941,7 @@ class App(tk.Tk):
         for c, label, _, _ in COLS:
             arrow = (' ↑' if self._sort_rev else ' ↓') if c == col else ''
             self.tree.heading(c, text=label + arrow)
-        self._render_table()
+        self._render_table(arb=False)
 
     def _sort_arb_by(self, col: str):
         if self._arb_sort == col:
@@ -1033,6 +1036,7 @@ class App(tk.Tk):
                 to_fetch.append(key)
 
         if not to_fetch:
+            self._history_fetching = False
             self.after(0, self._render_arb_table)
             return
 
@@ -1074,6 +1078,7 @@ class App(tk.Tk):
                     self._arb_history[cache_key] = result
 
         save_history_cache(self._arb_history)
+        self._history_fetching = False
         self.after(0, self._render_arb_table)
 
     def _arb_double_click(self, event):
@@ -1250,7 +1255,8 @@ class App(tk.Tk):
                     med_str,
                 ))
             self._arb_row_map[iid] = r
-        if missing:
+        if missing and not self._history_fetching:
+            self._history_fetching = True
             threading.Thread(target=self._fetch_arb_history_bg,
                              args=(missing,), daemon=True).start()
 
@@ -1493,7 +1499,9 @@ class App(tk.Tk):
 
     # ── Média 24h ─────────────────────────────────────────────────────────────
     def _buscar_medias_24h(self):
-        threading.Thread(target=self._fetch_avgs_bg, daemon=True).start()
+        if not self._avgs_fetching:
+            self._avgs_fetching = True
+            threading.Thread(target=self._fetch_avgs_bg, daemon=True).start()
 
     def _fetch_avgs_bg(self):
         items_snap = list(self._items)
@@ -1549,6 +1557,7 @@ class App(tk.Tk):
                 it['avgPrice24h'] = _avg_cache[ck] or None
                 changed = True
 
+        self._avgs_fetching = False
         if changed:
             self.after(0, self._render_table)
 
