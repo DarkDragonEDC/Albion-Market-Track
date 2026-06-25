@@ -52,10 +52,9 @@ _fetch_queue: set  = set()       # IDs aguardando busca de nome
 _fetch_lock        = threading.Lock()
 _avg_cache:  dict = {}           # "itemId@ench|city|quality" → int (preço médio 24h)
 
-FILTER_UDP = ('udp and ('
-              '(ip.SrcAddr >= 5.188.125.0 and ip.SrcAddr <= 5.188.125.255) or '
-              '(ip.DstAddr >= 5.188.125.0 and ip.DstAddr <= 5.188.125.255)'
-              ')')
+# Albion Online usa porta UDP 5056 (Photon SDK) em todos os servidores.
+# Filtrar por porta é mais robusto que por IP (IPs variam por região/servidor).
+FILTER_UDP = 'udp and (udp.SrcPort == 5056 or udp.DstPort == 5056)'
 
 LOCATION_NAMES = {
     '4002': 'Fort Sterling', '4000': 'Fort Sterling',
@@ -1427,11 +1426,14 @@ class App(tk.Tk):
     def _pos_processar(self, resps: int, cidade: str, errors: int, orders: list):
         self._cmb_cidade.config(state='readonly')
         self.btn_start.config(state='normal')
-        if resps > 0:
+        if resps > 0 or orders:
             loc = cidade or 'mercado'
             novos = self._aplicar_ordens(orders)
             self._render_table()
-            self._set_status(f'✓  {resps} respostas de {loc} — {novos} grupos na tabela.')
+            if resps > 0:
+                self._set_status(f'✓  {resps} respostas de {loc} — {novos} grupos na tabela.')
+            else:
+                self._set_status(f'✓  {novos} grupos na tabela.')
             self._buscar_medias_24h()
         elif errors > 0:
             self._set_status('✗  Dados sem localização — clique "Cap. zona" e troque de mapa uma vez.')
