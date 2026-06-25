@@ -36,16 +36,23 @@ PCAP_ZONE   = r'C:\temp\albion_zone_detect.pcap'
 PCAP_MAIN   = r'C:\temp\albion_capture.pcap'
 PCAP_COMBINED = r'C:\temp\albion_combined.pcap'
 def _find_dc_path() -> str:
-    candidates = [
-        r'C:\Program Files\Albion Data Client\albiondata-client.exe',
-        r'C:\Program Files (x86)\Albion Data Client\albiondata-client.exe',
+    import string
+    drives = [f'{d}:\\' for d in string.ascii_uppercase if os.path.exists(f'{d}:\\')]
+    candidates = []
+    for d in drives:
+        candidates += [
+            os.path.join(d, 'Program Files', 'Albion Data Client', 'albiondata-client.exe'),
+            os.path.join(d, 'Program Files (x86)', 'Albion Data Client', 'albiondata-client.exe'),
+            os.path.join(d, 'Albion Data Client', 'albiondata-client.exe'),
+        ]
+    candidates += [
         os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Albion Data Client', 'albiondata-client.exe'),
         os.path.join(WORK_DIR, 'albiondata-client.exe'),
     ]
     for p in candidates:
         if os.path.isfile(p):
             return p
-    return candidates[0]
+    return r'C:\Program Files\Albion Data Client\albiondata-client.exe'
 
 DC_PATH     = _find_dc_path()
 SCANNER_DIR = os.path.join(WORK_DIR, 'albion-scanner')
