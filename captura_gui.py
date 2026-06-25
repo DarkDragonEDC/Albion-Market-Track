@@ -20,6 +20,7 @@ import socket as _socket
 import urllib.request
 import urllib.parse
 from datetime import datetime, timezone
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # ── Caminhos ──────────────────────────────────────────────────────────────────
 def _find_work_dir() -> str:
@@ -476,17 +477,68 @@ def _combinar_pcaps(zone_path: str, main_path: str, out_path: str) -> str:
         return main_path
 
 
+def _iniciar_proxy_dc(orders_out: list) -> tuple:
+    """Sobe um servidor HTTP temporário que recebe o POST do Data Client.
+    Retorna (porta, servidor). O DC envia para http://localhost:{porta}.
+    Também encaminha para Node.js para manter o store atualizado."""
+
+    class _Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                body = self.rfile.read(length)
+                data = json.loads(body)
+                batch = data.get('Orders', [])
+                if batch:
+                    orders_out.extend(batch)
+                    _ws_log(f'proxy DC→Python: {len(batch)} ordens (total={len(orders_out)})')
+                # Encaminha para Node.js em background
+                def _fwd():
+                    try:
+                        req = urllib.request.Request(
+                            'http://localhost:3001/marketorders.ingest',
+                            data=body,
+                            headers={'Content-Type': 'application/json'})
+                        urllib.request.urlopen(req, timeout=3)
+                    except Exception:
+                        pass
+                threading.Thread(target=_fwd, daemon=True).start()
+            except Exception as e:
+                _ws_log(f'proxy erro: {e}')
+            self.send_response(200)
+            self.end_headers()
+
+        def log_message(self, *args):
+            pass
+
+    # Porta livre aleatória
+    tmp = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+    tmp.bind(('127.0.0.1', 0))
+    porta = tmp.getsockname()[1]
+    tmp.close()
+
+    srv = HTTPServer(('127.0.0.1', porta), _Handler)
+    t = threading.Thread(target=srv.serve_forever, daemon=True)
+    t.start()
+    return porta, srv
+
+
 def processar_pcap(pcap_path: str):
-    """Roda Data Client e recebe ordens diretamente via WebSocket porta 8099."""
+    """Roda Data Client e recebe ordens via HTTP proxy (porta aleatória) ou WebSocket."""
     orders: list = []
     ws_done = threading.Event()
 
-    # Inicia receptor WebSocket ANTES do Data Client abrir a porta
+    # Proxy HTTP: recebe POST do DC diretamente (mais confiável que WS timing)
+    proxy_porta, proxy_srv = _iniciar_proxy_dc(orders)
+
+    # Receptor WebSocket porta 8099 (canal secundário, funciona em DCs mais antigos)
     threading.Thread(target=_coletar_via_ws, args=(orders, ws_done),
                      daemon=True).start()
 
     try:
-        args = [DC_PATH, '-o', pcap_path, '-p', 'http://localhost:3001', '-debug']
+        args = [DC_PATH, '-o', pcap_path,
+                '-p', f'http://localhost:{proxy_porta}',
+                '-debug']
         proc = subprocess.run(args, cwd=WORK_DIR, capture_output=True, timeout=60,
                               creationflags=0x08000000)
         out  = proc.stdout.decode('utf-8', errors='replace')
@@ -496,17 +548,18 @@ def processar_pcap(pcap_path: str):
         m      = re.search(r'opChangeCluster.*?0:"(\d+)"', out)
         cidade = LOCATION_NAMES.get(m.group(1), f'Zona {m.group(1)}') if m else ''
         if err:
-            _ws_log(f'DC stderr: {err[:300]}')
-        _ws_log(f'DC stdout snippet: {out[:300]}')
+            _ws_log(f'DC stderr: {err[:500]}')
+        _ws_log(f'DC stdout: {out[:500]}')
     except Exception as ex:
         _ws_log(f'DC exception: {ex}')
         resps, cidade, errors = 0, '', -1
+    finally:
+        proxy_srv.shutdown()
 
-    ws_done.wait(timeout=5)
-    time.sleep(2)  # aguarda Node.js processar mensagens WebSocket pendentes
-    _ws_log(f'processar_pcap: resps={resps} ordens_ws={len(orders)}')
+    ws_done.wait(timeout=3)
+    _ws_log(f'processar_pcap: resps={resps} ordens_proxy={len(orders)}')
 
-    # Fallback: se WebSocket não entregou nada, busca do Node.js HTTP
+    # Fallback: se proxy e WS não entregaram nada, busca do Node.js HTTP
     if not orders:
         _ws_log('fallback: consultando Node.js HTTP /api/items')
         try:
@@ -515,8 +568,6 @@ def processar_pcap(pcap_path: str):
                 raw_items = json.loads(r.read())
             if raw_items:
                 _ws_log(f'fallback OK: {len(raw_items)} itens do Node.js')
-                # Converte formato Node.js para formato de ordens brutas compatível
-                # com _aplicar_ordens (mas em formato já processado)
                 orders.append({'_fallback_items': raw_items})
         except Exception as e:
             _ws_log(f'fallback HTTP falhou: {e}')

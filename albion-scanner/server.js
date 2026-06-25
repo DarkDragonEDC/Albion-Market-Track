@@ -22,7 +22,7 @@ const LOCATION_NAMES = {
   '4500': 'Brecilien',
 }
 
-app.use(express.json({ limit: '10mb' }))
+app.use(express.json({ limit: '10mb', type: '*/*' }))
 
 app.use((req, res, next) => {
   if (req.path !== '/api/items') console.log(`→ ${req.method} ${req.path}`)
