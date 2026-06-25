@@ -7,7 +7,7 @@ Você captura os preços do mercado enquanto navega no jogo, e o app mostra quai
 
 ## 📋 O que você vai precisar instalar (só uma vez)
 
-Antes de usar o app, instale os três programas abaixo. São gratuitos.
+Instale os dois programas abaixo. São gratuitos.
 
 ### 1. Node.js
 > É o motor que roda o servidor interno do app.
@@ -23,11 +23,7 @@ Antes de usar o app, instale os três programas abaixo. São gratuitos.
 - Baixe o arquivo mais recente chamado `albiondata-client-installer.exe`
 - Instale normalmente
 
-### 3. Python 3.11 ou mais novo
-> Necessário apenas se você for rodar pelo código-fonte (sem usar o .exe).
-
-- Acesse: **https://python.org/downloads**
-- Baixe e instale. **Marque a opção "Add Python to PATH"** antes de clicar em Install
+> ✅ **Não precisa instalar Python.** O app já vem empacotado como `.exe` e traz tudo que precisa.
 
 ---
 
@@ -35,38 +31,33 @@ Antes de usar o app, instale os três programas abaixo. São gratuitos.
 
 ### Passo 1 — Baixe o projeto
 
-Clique em **Code → Download ZIP** nesta página e extraia a pasta onde quiser.  
-Ou, se você tem o Git instalado:
+Clique em **Code → Download ZIP** nesta página e extraia a pasta onde quiser (ex: `C:\Albion Market Track`).
 
-```bash
-git clone https://github.com/DarkDragonEDC/Albion-Market-Track.git
+### Passo 2 — Instale as dependências do servidor (só uma vez)
+
+**1.** Abra a pasta que você extraiu  
+**2.** Entre na pasta **`albion-scanner`**  
+**3.** Clique na barra de endereço do Windows Explorer, digite `cmd` e pressione **Enter**
+
+![Barra de endereço](.github/cmd-tip.png)
+
+**4.** Na janela preta que abrir, digite o comando abaixo e pressione Enter:
+
 ```
-
-### Passo 2 — Instale as dependências do servidor
-
-Abra a pasta `albion-scanner` dentro do projeto, clique na barra de endereço do Windows Explorer, digite `cmd` e pressione Enter. Na janela que abrir, digite:
-
-```bash
 npm install
 ```
 
-Aguarde terminar (pode demorar 1-2 minutos na primeira vez).
-
-### Passo 3 — Instale a dependência Python
-
-Abra o Prompt de Comando como **Administrador** e rode:
-
-```bash
-pip install pydivert
-```
+**5.** Aguarde terminar (pode demorar 1-2 minutos). Quando voltar para o cursor normal, está pronto.
 
 ---
 
 ## ▶️ Como abrir o app
 
-Clique com o botão direito no arquivo **`iniciar-scanner.bat`** e escolha **"Executar como Administrador"**.
+Clique com o botão direito no arquivo **`Albion Market.exe`** e escolha **"Executar como Administrador"**, depois clique em **Sim** na janela de confirmação.
 
-> ⚠️ **Precisa ser como Administrador!** O app captura pacotes de rede, o que exige permissão de admin no Windows. Se você apenas der dois cliques, vai aparecer uma janela pedindo confirmação — clique em **Sim**.
+> ⚠️ **Precisa ser como Administrador!** O app captura pacotes de rede, o que exige permissão elevada no Windows. Se abrir sem ser admin, não vai funcionar.
+
+**Atalho:** você também pode usar o `iniciar-scanner.bat` — ele já pede a permissão de admin automaticamente ao dar dois cliques.
 
 ---
 
@@ -74,15 +65,15 @@ Clique com o botão direito no arquivo **`iniciar-scanner.bat`** e escolha **"Ex
 
 ### Antes de tudo: Capture a zona da cidade (só na primeira vez por cidade)
 
-O app precisa saber em qual cidade você está. Você faz isso uma vez por cidade e nunca mais precisa repetir.
+O app precisa saber em qual cidade você está. Você faz isso **uma vez por cidade** e nunca mais precisa repetir.
 
 **1.** Abra o app  
 **2.** No campo **"Cidade"** (canto superior esquerdo), selecione a cidade onde você quer capturar preços  
 **3.** Clique no botão **"⬡ Cap. zona"**  
-**4.** O app vai pedir para você trocar de mapa no jogo — abra o Albion Online e **entre na cidade selecionada** (ou saia dela, qualquer troca de mapa serve)  
-**5.** Quando o app detectar a zona, o status muda para **"✓ Zona pronta"** em verde
+**4.** O app vai pedir para você trocar de mapa — abra o Albion Online e **entre na cidade selecionada** (ou saia dela, qualquer troca de mapa serve)  
+**5.** Quando o app detectar a zona, o status muda para **"✓ Zona pronta"** em verde — pode soltar
 
-> 💡 **Dica:** Black Market usa a mesma zona que Caerleon. Se você capturou Caerleon, já serve para o Black Market também.
+> 💡 **Dica:** Black Market usa a mesma zona que Caerleon. Se você já capturou Caerleon, já serve para o Black Market também.
 
 ---
 
@@ -94,7 +85,7 @@ O app precisa saber em qual cidade você está. Você faz isso uma vez por cidad
  - Abra categorias, veja preços, busque itens — qualquer coisa que carregue a lista de preços  
  - Quanto mais categorias você abrir, mais dados o app vai ter  
 **4.** Quando terminar, clique em **"■ Finalizar"**  
-**5.** Aguarde alguns segundos — o app vai processar os dados e preencher a tabela
+**5.** Aguarde alguns segundos — o app vai processar e preencher a tabela automaticamente
 
 > ⏱️ O temporizador no canto superior direito mostra há quanto tempo você está capturando.
 
@@ -155,10 +146,8 @@ Esta é a aba principal! Ela cruza os preços das cidades com os do Black Market
 
 ## 🔧 Filtros da Arbitragem
 
-Na parte de cima da aba Arbitragem BM você tem controles para refinar o que aparece:
-
 ### Taxa %
-Ajuste a taxa de mercado cobrada pelo Black Market. O padrão é **10%**. Use o Spinbox para aumentar ou diminuir.
+Ajuste a taxa de mercado cobrada pelo Black Market. O padrão é **10%**.
 
 ### Barra de filtros
 
@@ -167,7 +156,7 @@ Ajuste a taxa de mercado cobrada pelo Black Market. O padrão é **10%**. Use o 
 | **Nome** | Digite parte do nome do item para filtrar |
 | **Tier** | Marque/desmarque os tiers que quer ver (T1 a T8) |
 | **Enc.** | Filtra por encantamento (.0 = sem encantamento, .1/.2/.3 = encantados) |
-| **Lucro % ≥** | Digite um número mínimo de % de lucro (ex: `90` mostra só itens com mais de 90% de lucro) |
+| **Lucro % ≥** | Digite um número mínimo de lucro (ex: `90` mostra só itens com mais de 90% de lucro) |
 
 ---
 
@@ -186,7 +175,7 @@ Se você viu um preço diferente no jogo e quer recalcular o lucro com o valor r
 ## 🗑️ Limpando os dados
 
 - **"Limpar dados"** — apaga tudo e começa do zero  
-- **"Limpar cidade"** — apaga só os dados da cidade que está selecionada no filtro (selecione a cidade no filtro primeiro)
+- **"Limpar cidade"** — apaga só os dados da cidade selecionada no filtro
 
 ---
 
@@ -202,26 +191,26 @@ Você não capturou a zona da cidade ainda. Clique em "⬡ Cap. zona" e troque d
 Certifique-se de estar rodando como **Administrador**. Use o `iniciar-scanner.bat`.
 
 ### A aba Arbitragem BM está vazia
-Você precisa capturar dados tanto de uma **cidade** quanto do **Black Market**. Faça as duas capturas.
+Você precisa capturar dados tanto de uma **cidade** quanto do **Black Market**. Faça as duas capturas e depois veja a aba Arbitragem.
 
 ### Node.js não encontrado / servidor não inicia
-Certifique-se de que o Node.js está instalado e que a pasta `albion-scanner` está no mesmo lugar que o `captura_gui.py` (ou o `.exe`).
+Certifique-se de que o **Node.js está instalado** e que a pasta **`albion-scanner`** está na mesma pasta que o `Albion Market.exe`.
 
 ### Os nomes dos itens aparecem em código (ex: `T4 ARMOR CLOTH SET1`)
-Normal na primeira vez. O app busca os nomes em português automaticamente em segundo plano. Aguarde alguns segundos e a tabela vai atualizar com os nomes corretos.
+Normal na primeira vez. O app busca os nomes em português automaticamente em segundo plano. Aguarde alguns segundos e a tabela vai atualizar sozinha.
 
 ---
 
-## 📁 Estrutura do projeto
+## 📁 Estrutura de arquivos
 
 ```
 Albion-Market-Track/
-├── captura_gui.py          ← App principal
-├── iniciar-scanner.bat     ← Atalho para abrir como Administrador
+├── Albion Market.exe       ← App principal (abra este como Administrador)
+├── iniciar-scanner.bat     ← Atalho que já pede admin automaticamente
 └── albion-scanner/
-    ├── server.js           ← Servidor local de dados
+    ├── server.js
     ├── package.json
-    └── node_modules/       ← Dependências (criadas pelo npm install)
+    └── node_modules/       ← Criado pelo "npm install"
 ```
 
 ---
