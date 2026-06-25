@@ -1606,6 +1606,12 @@ class App(tk.Tk):
 if __name__ == '__main__':
     os.makedirs(r'C:\temp', exist_ok=True)
 
+    # Garante que config.yaml existe no WORK_DIR (necessário para DC abrir porta 8099)
+    _cfg = os.path.join(WORK_DIR, 'config.yaml')
+    if not os.path.exists(_cfg):
+        with open(_cfg, 'w') as _f:
+            _f.write('EnableWebsockets: True\nAllowedWebsocketHosts:\n  - localhost\n  - 127.0.0.1\n')
+
     # Oculta a janela de console do Windows
     if sys.platform == 'win32':
         hwnd = ctypes.windll.kernel32.GetConsoleWindow()
