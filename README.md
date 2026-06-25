@@ -166,6 +166,8 @@ Se você viu um preço diferente no jogo e quer recalcular o lucro com o valor r
 **4.** O item fica destacado em **laranja** para indicar que foi editado manualmente  
 **5.** Para remover a edição e voltar ao valor original, dê duplo-clique e pressione **Delete**
 
+> 💾 **As edições são salvas automaticamente.** Ao fechar e reabrir o app, todos os valores editados manualmente continuam lá.
+
 ---
 
 ## 🗑️ Limpando os dados

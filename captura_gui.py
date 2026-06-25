@@ -34,8 +34,9 @@ DC_PATH     = r'C:\Program Files\Albion Data Client\albiondata-client.exe'
 SCANNER_DIR = os.path.join(WORK_DIR, 'albion-scanner')
 PCAP_HEADER  = struct.pack('<IHHiIII', 0xA1B2C3D4, 2, 4, 0, 0, 65535, 101)
 API_BASE     = 'http://localhost:3001'
-DATA_STORE    = r'C:\temp\albion_market_store.json'
-HISTORY_CACHE = r'C:\temp\albion_history_cache.json'
+DATA_STORE      = r'C:\temp\albion_market_store.json'
+HISTORY_CACHE   = r'C:\temp\albion_history_cache.json'
+OVERRIDES_CACHE = r'C:\temp\albion_overrides.json'
 HISTORY_TTL   = 7200  # segundos (2 horas)
 REFRESH_MS  = 5000
 ITEMS_CACHE  = r'C:\temp\albion_item_names.json'
@@ -169,6 +170,30 @@ def save_history_cache(cache: dict):
     try:
         with open(HISTORY_CACHE, 'w', encoding='utf-8') as f:
             json.dump(cache, f)
+    except Exception:
+        pass
+
+
+def load_overrides() -> dict:
+    try:
+        if os.path.exists(OVERRIDES_CACHE):
+            with open(OVERRIDES_CACHE, encoding='utf-8') as f:
+                raw = json.load(f)
+            # Converte chaves "itemId|ench|qual" de volta para tuplas
+            return {tuple(k.split('|', 2)) + (int(k.split('|')[2]),)
+                    if False else (k.split('|')[0], int(k.split('|')[1]), int(k.split('|')[2])): v
+                    for k, v in raw.items()}
+    except Exception:
+        pass
+    return {}
+
+
+def save_overrides(overrides: dict):
+    try:
+        # Converte tuplas (itemId, ench, qual) para string "itemId|ench|qual"
+        raw = {'|'.join(str(x) for x in k): v for k, v in overrides.items()}
+        with open(OVERRIDES_CACHE, 'w', encoding='utf-8') as f:
+            json.dump(raw, f, ensure_ascii=False)
     except Exception:
         pass
 
@@ -498,7 +523,7 @@ class App(tk.Tk):
         self._arb_sort       = 'lucro'
         self._arb_sort_rev   = True
         self._arb_history    = load_history_cache()
-        self._arb_overrides  = {}   # (itemId, ench, qual) → {'precoCidade': N, 'precoBM': N}
+        self._arb_overrides  = load_overrides()  # (itemId, ench, qual) → {'precoCidade': N, 'precoBM': N}
         self._arb_row_map    = {}   # iid → row dict
         self._arb_fname      = tk.StringVar(value='')
         self._arb_min_pct    = tk.StringVar(value='')
@@ -1082,6 +1107,7 @@ class App(tk.Tk):
                 return
             ov = self._arb_overrides.setdefault(key, {})
             ov[field] = val
+            save_overrides(self._arb_overrides)
             self._render_arb_table()
 
         def cancel(ev=None):
@@ -1093,6 +1119,7 @@ class App(tk.Tk):
             ov.pop(field, None)
             if not ov:
                 self._arb_overrides.pop(key, None)
+            save_overrides(self._arb_overrides)
             self._render_arb_table()
 
         entry.bind('<Return>',  commit)
@@ -1185,7 +1212,7 @@ class App(tk.Tk):
             iid = f"{r['itemId']}|{r['enchantment']}|{r['quality']}"
             try:
                 self.arb_tree.insert('', 'end', iid=iid,
-                                     tags=(base_tag, color_tag) + edit_tag, values=(
+                                     tags=edit_tag + (base_tag, color_tag), values=(
                     parse_name(r['itemId'], r['enchantment']),
                     QUALITY_NAMES.get(r['quality'], str(r['quality'])),
                     r['location'],
@@ -1202,7 +1229,7 @@ class App(tk.Tk):
                 # iid duplicado (mesma combinação item+ench+qual de cidade diferente)
                 iid = f"{r['itemId']}|{r['enchantment']}|{r['quality']}|{i}"
                 self.arb_tree.insert('', 'end', iid=iid,
-                                     tags=(base_tag, color_tag) + edit_tag, values=(
+                                     tags=edit_tag + (base_tag, color_tag), values=(
                     parse_name(r['itemId'], r['enchantment']),
                     QUALITY_NAMES.get(r['quality'], str(r['quality'])),
                     r['location'],
