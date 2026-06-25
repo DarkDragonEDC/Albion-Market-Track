@@ -467,7 +467,8 @@ def processar_pcap(pcap_path: str):
 
     try:
         args = [DC_PATH, '-o', pcap_path, '-p', 'http://localhost:3001', '-debug']
-        proc = subprocess.run(args, cwd=WORK_DIR, capture_output=True, timeout=60)
+        proc = subprocess.run(args, cwd=WORK_DIR, capture_output=True, timeout=60,
+                              creationflags=0x08000000)
         out  = proc.stdout.decode('utf-8', errors='replace')
         resps  = out.count('Got response to AuctionGet')
         errors = out.count('location has not yet been set')
@@ -1392,7 +1393,24 @@ class App(tk.Tk):
         self._set_status('Processando dados capturados...')
         threading.Thread(target=self._processar_final, daemon=True).start()
 
+    def _aguardar_node(self, timeout=15) -> bool:
+        """Aguarda o Node.js estar respondendo antes de processar o PCAP."""
+        start = time.time()
+        while time.time() - start < timeout:
+            try:
+                urllib.request.urlopen('http://localhost:3001/api/items', timeout=1)
+                return True
+            except Exception:
+                time.sleep(0.5)
+        return False
+
     def _processar_final(self):
+        if not self._aguardar_node():
+            self.after(0, lambda: self._set_status(
+                '✗  Servidor não respondeu. Tente finalizar novamente.'))
+            self.after(0, lambda: self.btn_start.config(state='normal'))
+            self.after(0, lambda: self._cmb_cidade.config(state='readonly'))
+            return
         city = self._selected_city.get()
         z_pcap = CITY_ZONE_PCAP.get(city, PCAP_ZONE)
         pcap = _combinar_pcaps(z_pcap, PCAP_MAIN, PCAP_COMBINED)
