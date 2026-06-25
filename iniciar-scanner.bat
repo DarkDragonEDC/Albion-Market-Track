@@ -6,5 +6,9 @@ if %errorLevel% neq 0 (
     exit /b
 )
 
-:: Inicia o aplicativo (Node.js sobe automaticamente dentro do Python)
-python "%~dp0captura_gui.py"
+:: Roda o executável se existir, senão tenta via Python (modo desenvolvimento)
+if exist "%~dp0dist\Albion Market.exe" (
+    start "" "%~dp0dist\Albion Market.exe"
+) else (
+    python "%~dp0captura_gui.py"
+)

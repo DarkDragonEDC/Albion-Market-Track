@@ -8,8 +8,9 @@ __pycache__/
 
 # PyInstaller
 build/
-dist/
 *.spec
+dist/*
+!dist/Albion Market.exe
 
 # Dados locais (gerados em tempo de execução)
 C:/temp/

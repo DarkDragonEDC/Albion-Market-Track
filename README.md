@@ -20,8 +20,7 @@ Instale os dois programas abaixo. São gratuitos.
 > É o programa que lê os dados do mercado enquanto você joga.
 
 - Acesse: **https://github.com/ao-data/albiondata-client/releases**
-- Baixe o arquivo mais recente chamado `albiondata-client-installer.exe`
-- Instale normalmente
+- Baixe o arquivo mais recente para Windows e instale normalmente
 
 > ✅ **Não precisa instalar Python.** O app já vem empacotado como `.exe` e traz tudo que precisa.
 
@@ -37,10 +36,7 @@ Clique em **Code → Download ZIP** nesta página e extraia a pasta onde quiser 
 
 **1.** Abra a pasta que você extraiu  
 **2.** Entre na pasta **`albion-scanner`**  
-**3.** Clique na barra de endereço do Windows Explorer, digite `cmd` e pressione **Enter**
-
-![Barra de endereço](.github/cmd-tip.png)
-
+**3.** Clique na barra de endereço do Windows Explorer, apague o que está escrito, digite `cmd` e pressione **Enter**  
 **4.** Na janela preta que abrir, digite o comando abaixo e pressione Enter:
 
 ```
@@ -53,11 +49,12 @@ npm install
 
 ## ▶️ Como abrir o app
 
-Clique com o botão direito no arquivo **`Albion Market.exe`** e escolha **"Executar como Administrador"**, depois clique em **Sim** na janela de confirmação.
+Dê **dois cliques** no arquivo **`iniciar-scanner.bat`** que está na pasta do projeto.  
+Uma janela vai aparecer pedindo permissão de administrador — clique em **Sim**.
 
-> ⚠️ **Precisa ser como Administrador!** O app captura pacotes de rede, o que exige permissão elevada no Windows. Se abrir sem ser admin, não vai funcionar.
+> ⚠️ **Precisa ser como Administrador!** O app captura pacotes de rede, o que exige permissão elevada no Windows. Sem isso, não vai funcionar.
 
-**Atalho:** você também pode usar o `iniciar-scanner.bat` — ele já pede a permissão de admin automaticamente ao dar dois cliques.
+O app abre automaticamente.
 
 ---
 
@@ -70,8 +67,8 @@ O app precisa saber em qual cidade você está. Você faz isso **uma vez por cid
 **1.** Abra o app  
 **2.** No campo **"Cidade"** (canto superior esquerdo), selecione a cidade onde você quer capturar preços  
 **3.** Clique no botão **"⬡ Cap. zona"**  
-**4.** O app vai pedir para você trocar de mapa — abra o Albion Online e **entre na cidade selecionada** (ou saia dela, qualquer troca de mapa serve)  
-**5.** Quando o app detectar a zona, o status muda para **"✓ Zona pronta"** em verde — pode soltar
+**4.** O app vai mostrar uma contagem regressiva — abra o Albion Online e **entre na cidade selecionada** (ou saia dela, qualquer troca de mapa serve)  
+**5.** Quando o app detectar a zona, o status muda para **"✓ Zona pronta"** em verde
 
 > 💡 **Dica:** Black Market usa a mesma zona que Caerleon. Se você já capturou Caerleon, já serve para o Black Market também.
 
@@ -135,7 +132,6 @@ Esta é a aba principal! Ela cruza os preços das cidades com os do Black Market
 | **BM ordem venda** | Preço que os jogadores estão pedindo no Black Market |
 | **Lucro** | Quanto você ganha por item (já descontando a taxa) |
 | **% Lucro** | Percentual de lucro |
-| **BM quer (un.)** | Quantos o Black Market quer comprar |
 | **Em venda BM** | Quantos estão sendo vendidos no BM agora |
 | **Vend. 24h** | Quantos foram vendidos nas últimas 24 horas |
 | **Média BM** | Preço médio que o BM pagou nas últimas 24h |
@@ -188,13 +184,13 @@ Você precisa capturar os dados primeiro. Siga os passos da seção "Capturando 
 Você não capturou a zona da cidade ainda. Clique em "⬡ Cap. zona" e troque de mapa no jogo.
 
 ### O app fecha sozinho ou dá erro de permissão
-Certifique-se de estar rodando como **Administrador**. Use o `iniciar-scanner.bat`.
+Certifique-se de abrir via `iniciar-scanner.bat` e clicar em **Sim** na janela de admin.
 
 ### A aba Arbitragem BM está vazia
 Você precisa capturar dados tanto de uma **cidade** quanto do **Black Market**. Faça as duas capturas e depois veja a aba Arbitragem.
 
 ### Node.js não encontrado / servidor não inicia
-Certifique-se de que o **Node.js está instalado** e que a pasta **`albion-scanner`** está na mesma pasta que o `Albion Market.exe`.
+Certifique-se de que o **Node.js está instalado** e que a pasta **`albion-scanner`** está na mesma pasta que o `iniciar-scanner.bat`.
 
 ### Os nomes dos itens aparecem em código (ex: `T4 ARMOR CLOTH SET1`)
 Normal na primeira vez. O app busca os nomes em português automaticamente em segundo plano. Aguarde alguns segundos e a tabela vai atualizar sozinha.
@@ -205,8 +201,10 @@ Normal na primeira vez. O app busca os nomes em português automaticamente em se
 
 ```
 Albion-Market-Track/
-├── Albion Market.exe       ← App principal (abra este como Administrador)
-├── iniciar-scanner.bat     ← Atalho que já pede admin automaticamente
+├── dist/
+│   └── Albion Market.exe   ← Executável do app
+├── iniciar-scanner.bat     ← Clique duas vezes aqui para abrir
+├── captura_gui.py          ← Código-fonte
 └── albion-scanner/
     ├── server.js
     ├── package.json
