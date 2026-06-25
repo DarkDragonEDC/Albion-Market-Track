@@ -22,11 +22,16 @@ import urllib.parse
 from datetime import datetime, timezone
 
 # ── Caminhos ──────────────────────────────────────────────────────────────────
-# Quando empacotado com PyInstaller (frozen), __file__ aponta para o diretório
-# temporário de extração. sys.executable aponta para o .exe real.
-WORK_DIR    = (os.path.dirname(sys.executable)
-               if getattr(sys, 'frozen', False)
-               else os.path.dirname(os.path.abspath(__file__)))
+def _find_work_dir() -> str:
+    if getattr(sys, 'frozen', False):
+        exe_dir = os.path.dirname(sys.executable)
+        # Procura albion-scanner ao lado do exe; se não achar, sobe um nível (ex: dist/)
+        if os.path.isdir(os.path.join(exe_dir, 'albion-scanner')):
+            return exe_dir
+        return os.path.dirname(exe_dir)
+    return os.path.dirname(os.path.abspath(__file__))
+
+WORK_DIR    = _find_work_dir()
 PCAP_ZONE   = r'C:\temp\albion_zone_detect.pcap'
 PCAP_MAIN   = r'C:\temp\albion_capture.pcap'
 PCAP_COMBINED = r'C:\temp\albion_combined.pcap'
