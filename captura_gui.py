@@ -35,7 +35,19 @@ WORK_DIR    = _find_work_dir()
 PCAP_ZONE   = r'C:\temp\albion_zone_detect.pcap'
 PCAP_MAIN   = r'C:\temp\albion_capture.pcap'
 PCAP_COMBINED = r'C:\temp\albion_combined.pcap'
-DC_PATH     = r'C:\Program Files\Albion Data Client\albiondata-client.exe'
+def _find_dc_path() -> str:
+    candidates = [
+        r'C:\Program Files\Albion Data Client\albiondata-client.exe',
+        r'C:\Program Files (x86)\Albion Data Client\albiondata-client.exe',
+        os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Albion Data Client', 'albiondata-client.exe'),
+        os.path.join(WORK_DIR, 'albiondata-client.exe'),
+    ]
+    for p in candidates:
+        if os.path.isfile(p):
+            return p
+    return candidates[0]
+
+DC_PATH     = _find_dc_path()
 SCANNER_DIR = os.path.join(WORK_DIR, 'albion-scanner')
 PCAP_HEADER  = struct.pack('<IHHiIII', 0xA1B2C3D4, 2, 4, 0, 0, 65535, 101)
 API_BASE     = 'http://localhost:3001'
@@ -1435,6 +1447,8 @@ class App(tk.Tk):
             else:
                 self._set_status(f'✓  {novos} grupos na tabela.')
             self._buscar_medias_24h()
+        elif errors == -1:
+            self._set_status(f'✗  Albion Data Client não encontrado em: {DC_PATH}')
         elif errors > 0:
             self._set_status('✗  Dados sem localização — clique "Cap. zona" e troque de mapa uma vez.')
         else:
