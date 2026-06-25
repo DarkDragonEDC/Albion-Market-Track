@@ -1,0 +1,22 @@
+# Node
+albion-scanner/node_modules/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Dados locais (gerados em tempo de execução)
+C:/temp/
+*.pcap
+*.log
+*.log.*
+
+# IDE
+.vscode/
+.idea/

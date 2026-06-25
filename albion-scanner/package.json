@@ -1,0 +1,13 @@
+{
+  "name": "albion-scanner",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "nats": "^2.29.3",
+    "ws": "^8.21.0"
+  }
+}
