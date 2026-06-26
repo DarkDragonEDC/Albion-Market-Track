@@ -606,6 +606,7 @@ class App(tk.Tk):
         self._sort_col      = None
         self._sort_rev      = False
         self._node_proc     = None
+        self._dc_live_proc  = None
         self._city_var      = tk.StringVar(value='Todas')
         self._time_var      = tk.StringVar(value='15 min')
         self._tax_var       = tk.DoubleVar(value=10.0)
@@ -930,8 +931,10 @@ class App(tk.Tk):
         self._set_status(f'{n_cache} nomes em cache. Iniciando servidor...')
         threading.Thread(target=enrich_names, args=(self,), daemon=True).start()
         self._start_node()
+        time.sleep(1)
+        self._start_dc_live()
 
-        time.sleep(3)
+        time.sleep(2)
         if n_items:
             self.after(0, self._render_table)
             msg = f'{n_items} itens carregados do histórico. Selecione a cidade e inicie a captura.'
@@ -952,6 +955,40 @@ class App(tk.Tk):
                 creationflags=0x08000000)  # CREATE_NO_WINDOW
         except Exception as e:
             self._set_status(f'Erro ao iniciar servidor: {e}')
+
+    def _start_dc_live(self):
+        """Inicia DC em modo live apenas se porta 8099 estiver livre."""
+        try:
+            t = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+            t.settimeout(0.5)
+            t.connect(('127.0.0.1', 8099))
+            t.close()
+            _ws_log('DC live: porta 8099 detectada — usando DC externo')
+            return
+        except Exception:
+            pass
+        try:
+            self._dc_live_proc = subprocess.Popen(
+                [DC_PATH], cwd=WORK_DIR,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                creationflags=0x08000000)
+            _ws_log(f'DC live iniciado (PID {self._dc_live_proc.pid})')
+            threading.Thread(target=self._dc_live_log, daemon=True).start()
+        except Exception as e:
+            _ws_log(f'DC live falhou: {e}')
+
+    def _dc_live_log(self):
+        proc = self._dc_live_proc
+        if not proc:
+            return
+        try:
+            out, err = proc.communicate()
+            if out:
+                _ws_log(f'DC stdout: {out.decode("utf-8", errors="replace")[:500]}')
+            if err:
+                _ws_log(f'DC stderr: {err.decode("utf-8", errors="replace")[:500]}')
+        except Exception:
+            pass
 
     # ── Refresh periódico ─────────────────────────────────────────────────────
     def _schedule_refresh(self):
@@ -1668,6 +1705,8 @@ class App(tk.Tk):
     # ── Fechar ────────────────────────────────────────────────────────────────
     def _on_close(self):
         stop_capture.set()
+        if self._dc_live_proc:
+            self._dc_live_proc.terminate()
         if self._node_proc:
             self._node_proc.terminate()
         self.destroy()
