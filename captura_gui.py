@@ -600,6 +600,7 @@ class App(tk.Tk):
         self._sort_col      = None
         self._sort_rev      = False
         self._node_proc     = None
+        self._dc_live_proc  = None
         self._city_var      = tk.StringVar(value='Todas')
         self._time_var      = tk.StringVar(value='15 min')
         self._tax_var       = tk.DoubleVar(value=10.0)
@@ -946,6 +947,22 @@ class App(tk.Tk):
                 creationflags=0x08000000)  # CREATE_NO_WINDOW
         except Exception as e:
             self._set_status(f'Erro ao iniciar servidor: {e}')
+        # Inicia DC em modo live para capturar dados de mercado em tempo real
+        # (necessário pois modo offline do DC 0.1.52 não entrega dados)
+        self._start_dc_live()
+
+    def _start_dc_live(self):
+        try:
+            _dc_log = open(r'C:\temp\albion_dc_live.txt', 'w', encoding='utf-8')
+            self._dc_live_proc = subprocess.Popen(
+                [DC_PATH, '-p', 'http://localhost:3001'],
+                cwd=WORK_DIR,
+                stdout=_dc_log, stderr=_dc_log,
+                creationflags=0x08000000)
+            _ws_log(f'DC live iniciado (PID {self._dc_live_proc.pid})')
+        except Exception as e:
+            _ws_log(f'DC live erro: {e}')
+            self._dc_live_proc = None
 
     # ── Refresh periódico ─────────────────────────────────────────────────────
     def _schedule_refresh(self):
@@ -1652,6 +1669,8 @@ class App(tk.Tk):
         stop_capture.set()
         if self._node_proc:
             self._node_proc.terminate()
+        if self._dc_live_proc:
+            self._dc_live_proc.terminate()
         self.destroy()
 
 
