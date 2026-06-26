@@ -21,6 +21,8 @@ import urllib.request
 import urllib.parse
 from datetime import datetime, timezone
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import tempfile
+import shutil
 
 # ── Caminhos ──────────────────────────────────────────────────────────────────
 def _find_work_dir() -> str:
@@ -535,11 +537,14 @@ def processar_pcap(pcap_path: str):
     threading.Thread(target=_coletar_via_ws, args=(orders, ws_done),
                      daemon=True).start()
 
+    # Pasta temporária sem config.yaml → DC offline não abre porta 8099
+    # (evita conflito com DC live e o panic no logrus do DC 0.1.52)
+    tmp_cwd = tempfile.mkdtemp()
     try:
         args = [DC_PATH, '-o', pcap_path,
                 '-p', f'http://localhost:{proxy_porta}',
                 '-debug']
-        proc = subprocess.run(args, cwd=WORK_DIR, capture_output=True, timeout=60,
+        proc = subprocess.run(args, cwd=tmp_cwd, capture_output=True, timeout=60,
                               creationflags=0x08000000)
         out  = proc.stdout.decode('utf-8', errors='replace')
         err  = proc.stderr.decode('utf-8', errors='replace')
@@ -555,6 +560,7 @@ def processar_pcap(pcap_path: str):
         resps, cidade, errors = 0, '', -1
     finally:
         proxy_srv.shutdown()
+        shutil.rmtree(tmp_cwd, ignore_errors=True)
 
     ws_done.wait(timeout=3)
     _ws_log(f'processar_pcap: resps={resps} ordens_proxy={len(orders)}')
