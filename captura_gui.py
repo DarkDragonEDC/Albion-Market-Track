@@ -1172,11 +1172,12 @@ class App(tk.Tk):
                 return key, None
 
         try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
                 for key, result in pool.map(fetch_one, to_fetch):
                     if result is not None:
                         cache_key = f'{key[0]}|{key[1]}|{key[2]}'
                         self._arb_history[cache_key] = result
+                    time.sleep(1.0)
 
             save_history_cache(self._arb_history)
             self.after(0, self._render_arb_table)
@@ -1651,10 +1652,21 @@ class App(tk.Tk):
                             ck = (api_id, entry.get('city', ''), entry.get('quality', 1))
                             avgs = entry.get('data', {}).get('prices_avg', [])
                             _avg_cache[ck] = int(avgs[-1]) if avgs and avgs[-1] else 0
-                        time.sleep(1.5)  # evita rate limit 429
+                        time.sleep(1.5)
+                    except urllib.error.HTTPError as e:
+                        if e.code == 429:
+                            # Marca como 0 no cache para não re-fetchar na próxima captura
+                            for _, ck in batch:
+                                if ck not in _avg_cache:
+                                    _avg_cache[ck] = 0
+                            _ws_log(f'avg 429 [{city}]: aguardando 15s')
+                            time.sleep(15)
+                        else:
+                            _ws_log(f'avg API error [{city}]: {e}')
+                            time.sleep(3)
                     except Exception as e:
                         _ws_log(f'avg API error [{city}]: {e}')
-                        time.sleep(3)    # backoff em caso de erro
+                        time.sleep(3)
 
             changed = False
             for it in self._items:
